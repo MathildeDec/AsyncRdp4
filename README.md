@@ -243,3 +243,19 @@ La réponse du serveur à chaque périphérique (`STATUS_SUCCESS` ou non) se lit
 - **USB** : le shim transmet une chaîne de sélection à `urbdrc` ; l'énumération (côté appelant, via libusb) est fournie par `asyncrdp.usb`. Nécessite des droits udev sur `/dev/bus/usb/...` pour fonctionner sans root — voir [`udev/70-asyncrdp-usb.rules`](./udev/70-asyncrdp-usb.rules) (installée automatiquement par `install.sh --usb`) et `usb_has_rw_access()` pour diagnostiquer ce point avant de tenter une redirection.
 - **Redirections imprimante/série/parallèle** : dépendent entièrement du support serveur — de nombreux serveurs RDP Linux (dont xrdp dans sa configuration par défaut) ne les implémentent pas.
 - Voir `docs/features-backlog.md` et `docs/sessions/` pour l'historique complet des bugs trouvés et le détail des zones non testées.
+
+
+---
+
+## Écosystème Gcm4
+
+Ce dépôt fait partie de l'écosystème Gcm4 :
+
+- **[Gcm4](https://github.com/MathildeDec/Gcm4)** — Application principale (gestionnaire de connexions GTK4)
+- **[AsyncVnc4](https://github.com/MathildeDec/AsyncVnc4)** — Bibliothèque cliente VNC
+- **AsyncRdp4** (ce dépôt) — Bibliothèque cliente RDP
+
+Roadmap d'intégration : [Gcm4 #106](https://github.com/MathildeDec/Gcm4/issues/106)
+Tableau de bord : [Gcm4 #107](https://github.com/MathildeDec/Gcm4/issues/107)
+Annonce du projet : [Gcm4 #103](https://github.com/MathildeDec/Gcm4/issues/103)
+Liaison plugin : [Gcm4 #105](https://github.com/MathildeDec/Gcm4/issues/105)
