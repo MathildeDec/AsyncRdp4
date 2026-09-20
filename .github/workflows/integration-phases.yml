@@ -129,7 +129,7 @@ jobs:
                 summary.push(`### PRs ouvertes`, ``, ...prs.map(p => `- #${p.number}: ${p.title} (${p.head.ref})`), ``);
               }
 
-              core.summary.appendRaw(summary.join('\n'));
+              core.summary.addRaw(summary.join('\n'));
               core.summary.write();
             } catch (error) {
               core.setFailed('Erreur lors de la génération du rapport: ' + error.message);
