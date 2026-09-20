@@ -1,0 +1,134 @@
+name: Suivi des phases d'intégration
+
+on:
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled]
+  pull_request:
+    types: [opened, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  pull-requests: read
+  contents: read
+
+jobs:
+  rapport-phases:
+    name: Rapport d'avancement par phase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérifier docs/roadmap.md
+        id: roadmap
+        run: |
+          if [ -f docs/roadmap.md ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ docs/roadmap.md trouvé"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ docs/roadmap.md manquant"
+          fi
+
+      - name: Vérifier docs/issues-summary.md
+        run: |
+          if [ -f docs/issues-summary.md ]; then
+            echo "✅ docs/issues-summary.md trouvé"
+          else
+            echo "⚠️ docs/issues-summary.md manquant"
+          fi
+
+      - name: Compter les issues par label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            const { data: closedIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              per_page: 100
+            });
+
+            // Compter par label de priorité
+            const priorityLabels = ['P0-fondations', 'P1-différenciation', 'P2-exploitation', 'P3-applicatif', 'P4-admin'];
+            const priorityCounts = {};
+            for (const label of priorityLabels) {
+              priorityCounts[label] = openIssues.filter(i => i.labels.some(l => l.name === label)).length;
+            }
+
+            // Compter par label de difficulté
+            const diffLabels = ['diff-1-faible', 'diff-2-moyenne', 'diff-3-notable', 'diff-4-elevee', 'diff-5-expert'];
+            const diffCounts = {};
+            for (const label of diffLabels) {
+              diffCounts[label] = openIssues.filter(i => i.labels.some(l => l.name === label)).length;
+            }
+
+            // Issues sans priorité
+            const noPriority = openIssues.filter(i =>
+              !i.labels.some(l => priorityLabels.includes(l.name))
+            );
+
+            // PRs ouvertes
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            const summary = [
+              `## Rapport d'avancement — ${context.repo.owner}/${context.repo.repo}`,
+              ``,
+              `**Date** : ${new Date().toISOString()}`,
+              ``,
+              `### Vue d'ensemble`,
+              ``,
+              `| Métrique | Valeur |`,
+              `|----------|--------|`,
+              `| Issues ouvertes | ${openIssues.length} |`,
+              `| Issues closes | ${closedIssues.length} |`,
+              `| PRs ouvertes | ${prs.length} |`,
+              ``,
+              `### Issues ouvertes par priorité`,
+              ``,
+              `| Priorité | Nombre |`,
+              `|----------|--------|`,
+              ...priorityLabels.map(l => `| ${l} | ${priorityCounts[l]} |`),
+              `| Sans priorité | ${noPriority.length} |`,
+              ``,
+              `### Issues ouvertes par difficulté`,
+              ``,
+              `| Difficulté | Nombre |`,
+              `|------------|--------|`,
+              ...diffLabels.map(l => `| ${l} | ${diffCounts[l]} |`),
+              ``,
+              `### Issues sans priorité`,
+              ``,
+              noPriority.length > 0
+                ? noPriority.map(i => `- #${i.number}: ${i.title}`).join('\n')
+                : '_Aucune — toutes les issues ouvertes ont une priorité._',
+              ``,
+              `### PRs ouvertes`,
+              ``,
+              prs.length > 0
+                ? prs.map(p => `- #${p.number}: ${p.title} (${p.head.ref})`).join('\n')
+                : '_Aucune PR ouverte._',
+              ``
+            ];
+
+            core.summary.appendRaw(summary.join('\n'));
+            core.summary.write();
+
+      - name: Vérifier la cohérence roadmap ↔ issues
+        if: steps.roadmap.outputs.exists == 'true'
+        run: |
+          echo "### Vérification de cohérence" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ docs/roadmap.md présent — vérifier manuellement que les numéros d'issues sont à jour." >> "$GITHUB_STEP_SUMMARY"
