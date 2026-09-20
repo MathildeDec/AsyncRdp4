@@ -1,0 +1,49 @@
+# 70-asyncrdp-usb.rules
+#
+# Contexte (voir docs/features-backlog.md, section USB) : sans cette
+# règle, un utilisateur de bureau non-root n'a par défaut aucun accès en
+# lecture/écriture sur les device nodes USB bruts (/dev/bus/usb/BBB/DDD).
+# Deux conséquences concrètes déjà observées et documentées :
+#   1. asyncrdp.usb.list_usb_devices() ne peut pas lire les descripteurs
+#      de chaîne (fabricant/produit/numéro de série) — pyusb lève
+#      ValueError("no langid"), capturée et non fatale (voir usb.py),
+#      mais le résultat reste incomplet (champs à None).
+#   2. La redirection USB effective (RdpOptions.usb_devices -> urbdrc)
+#      échoue à l'ouverture exclusive du périphérique par libusb, avec
+#      LIBUSB_ERROR_ACCESS/LIBUSB_ERROR_IO — confirmé le 2026-09-07
+#      contre un vrai second serveur RDP externe.
+#
+# Ubuntu/Fedora/Arch récents (systemd) taguent déjà `uaccess` pour
+# certaines classes USB précises (cf. /usr/lib/udev/rules.d/70-uaccess.rules
+# — scanners, lecteurs média, capteurs...), mais PAS pour le bus USB
+# générique : un outil qui doit pouvoir rediriger n'importe quel
+# périphérique (comme urbdrc, pas un pilote dédié à une classe) doit
+# fournir sa propre règle, exactement comme le font des outils USB
+# génériques comparables (dfu-util, OpenOCD, PlatformIO...).
+#
+# TAG+="uaccess" délègue à systemd-logind : le node est automatiquement
+# rendu accessible (ACL) à l'utilisateur de la session graphique active
+# au moment du branchement, et l'ACL est retirée à la déconnexion —
+# aucun groupe supplémentaire (plugdev...) à gérer, aucune re-connexion
+# nécessaire au-delà d'un débranchement/rebranchement du périphérique.
+#
+# Compromis à connaître avant d'installer cette règle telle quelle :
+# elle s'applique à TOUT périphérique USB, pas seulement à celui qu'on
+# compte rediriger — un choix délibéré (urbdrc ne sait pas à l'avance
+# quel périphérique l'utilisateur choisira dans l'UI de GCM), mais qui
+# élargit la surface par rapport à une règle scopée à un VID:PID connu
+# à l'avance. Pour restreindre à un périphérique précis, remplacer la
+# ligne ci-dessous par, par exemple :
+#   SUBSYSTEM=="usb", ATTR{idVendor}=="0483", ATTR{idProduct}=="5741", TAG+="uaccess"
+#
+# Installation : voir install.sh --usb (l'intègre automatiquement), ou
+# manuellement :
+#   sudo cp udev/70-asyncrdp-usb.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger
+# Un périphérique déjà branché avant l'installation de la règle ne
+# récupère l'ACL qu'après un débranchement/rebranchement (ou un
+# redémarrage) — `udevadm trigger` ne suffit pas à lui seul pour un
+# device déjà énuméré.
+
+SUBSYSTEM=="usb", TAG+="uaccess"

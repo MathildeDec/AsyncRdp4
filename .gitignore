@@ -1,0 +1,18 @@
+# Environnements / outillage
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# uv.lock est volontairement PAS ignoré : il doit être versionné, comme
+# poetry.lock ou package-lock.json, pour des installations reproductibles
+# (voir docs/sessions/session-28.md).
+
+# Artefacts de compilation natifs (voir build_gir.py, integrations/gtk4/native/)
+integrations/gtk4/native/_build/
+*.so
+*.o

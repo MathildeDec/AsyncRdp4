@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=68", "cffi>=1.15.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asyncrdp"
+version = "0.1.0"
+description = "Binding asyncio sur libfreerdp3 (RDP) via cffi — équivalent RDP d'asyncvnc2"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Mathilde" },
+]
+dependencies = [
+    "cffi>=1.15.0",
+    "loguru>=0.7.0",
+]
+
+[project.optional-dependencies]
+# Nécessaire uniquement pour integrations/gtk4/ (ponts affichage + clipboard
+# GTK4, destinés au futur plugin RDP de GCM) — pas une dépendance de la
+# bibliothèque cœur. numpy ajouté le 2026-09-07 : gcm_gtk4_clipboard_bridge.py
+# fait `import numpy as np` au niveau module sans que ce soit déclaré nulle
+# part (ni ici ni dans install.sh) — bug de packaging réel trouvé en
+# important le pont sur une machine neuve (ModuleNotFoundError), pas
+# seulement une lacune théorique.
+gtk4 = ["PyGObject>=3.42", "numpy"]
+# Uniquement pour tests/test_gtk4_live.py (pas une dépendance des ponts
+# eux-mêmes) : gbulb pour
+# test_clipboard_bridge_files_download_from_rdp_via_external_reader (intègre
+# une vraie boucle asyncio à la boucle GLib le temps de ce test précis) ;
+# Pillow pour test_display_bridge_renders_correct_colors_onscreen (décode en
+# pixels le PNG de la capture d'écran XWD). Pillow ajouté le 2026-09-16 :
+# `pip install Pillow` avait déjà dû être fait à la main hors du dépôt le
+# 2026-09-08 (voir docs/sessions/session-20.md) sans que quiconque ne le
+# déclare ici — reproduit à l'identique en rejouant la suite depuis un venv
+# neuf, ce qui a permis de s'en apercevoir et de le corriger cette fois.
+gtk4-test = ["gbulb>=0.6.0", "Pillow"]
+# Uniquement pour asyncrdp.usb (énumération des périphériques USB locaux
+# via libusb, pour construire les chaînes de sélection RdpOptions.usb_devices)
+# — pas une dépendance du cœur de la bibliothèque.
+usb = ["pyusb>=1.2.0"]
+test = ["pytest>=7.0", "pytest-asyncio>=0.21"]
+
+[project.urls]
+Homepage = "https://github.com/<votre-compte>/asyncrdp"
+Documentation = "https://github.com/<votre-compte>/asyncrdp/blob/main/README.md"
+
+[dependency-groups]
+# Outillage de développement (jamais installé chez un utilisateur final du
+# package) — `uv sync` installe ce groupe par défaut car il s'appelle
+# "dev". pytest/pytest-asyncio sont dupliqués depuis l'extra "test"
+# ci-dessus à dessein : cet extra reste utile isolément (CI qui a besoin
+# de lancer les tests sans le reste de l'outillage dev), et PEP 735 ne
+# permet pas d'inclure un extra du projet dans un groupe de dépendances.
+dev = [
+    "ruff>=0.16.0",
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = ["asyncrdp"]
+
+[tool.setuptools.package-data]
+asyncrdp = ["_shim.c"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120  # aligné sur le style existant (commentaires/docstrings en français, souvent longs)
+
+[tool.ruff.lint]
+# Sélection volontairement resserrée sur les règles de correction/cohérence
+# largement consensuelles (pyflakes, pycodestyle, isort, pyupgrade, bugbear,
+# comprehensions, simplify, règles ruff propres) plutôt que la totalité du
+# catalogue ruff : les familles plus opinionées/hors-sujet pour ce projet
+# (S = bandit-sécurité, ASYNC, PLW = pylint, EXE = permissions shebang,
+# PYI = conventions de stubs .pyi) ne sont pas sélectionnées.
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: nécessite un vrai serveur RDP (voir ASYNCRDP_TEST_HOST)",
+]
