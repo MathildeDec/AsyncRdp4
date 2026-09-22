@@ -85,7 +85,7 @@ jobs:
             lines.push(`**Date** : ${new Date().toISOString()}`);
             lines.push(`**Déclencheur** : ${context.eventName}`);
             lines.push('');
-            lines.push('### Vue d'ensemble');
+            lines.push('### Vue d\'ensemble');
             lines.push('');
             lines.push('| Métrique | Valeur |');
             lines.push('|----------|--------|');
