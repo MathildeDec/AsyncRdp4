@@ -388,8 +388,11 @@ uv sync                                          # crée .venv/, installe cffi+l
 uv run ruff check .                              # lint — doit rester à 0 erreur
 uv run pytest tests/ --ignore=tests/test_integration_live.py \
     --ignore=tests/test_gtk4_live.py --ignore=tests/test_gtk4_bridges.py \
-    --ignore=tests/test_gtk4_clipboard_file_download.py
+    --ignore=tests/test_gtk4_clipboard_file_download.py \
+    --ignore=tests/test_gtk4_demo_viewer.py
                                                    # unitaires, aucun serveur/GTK4 nécessaire
+                                                   # (demo_viewer : doublures gtk_stub, mais numpy
+                                                   #  requis par les modules sous test — extra gtk4)
 ```
 
 Installation complète (système, apt + extras gtk4/usb — voir
